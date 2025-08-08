@@ -165,6 +165,39 @@ class WarCardGameTest < Minitest::Test
     assert_equal 0, @player2.wone_cards.size, "Player 2 should have no won cards"
   end
 
+  def test_player_with_no_additional_card_uses_face_up_card_for_tiebreaker_round
+    # First card, which gets open during round gets used for tie-breaker
+    p1_card1 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)
+
+    # First 3 cards from deck (besides the open card) gets used in tie-breaker round
+    p2_card1 = Cards::Card.new(val: 'Q', rank: 12, suit: :hearts)
+    p2_card2 = Cards::Card.new(val: '5', rank: 5, suit: :hearts)
+    p2_card3 = Cards::Card.new(val: '4', rank: 4, suit: :hearts)
+    p2_card4 = Cards::Card.new(val: '3', rank: 3, suit: :hearts)
+    p2_card5 = Cards::Card.new(val: '2', rank: 2, suit: :hearts)
+
+    p3_card1 = Cards::Card.new(val: 'Q', rank: 12, suit: :diamonds)
+    p3_card2 = Cards::Card.new(val: 'J', rank: 5, suit: :diamonds)
+    p3_card3 = Cards::Card.new(val: '4', rank: 4, suit: :diamonds)
+
+    p4_card1 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)
+    p4_card2 = Cards::Card.new(val: '8', rank: 5, suit: :spades)
+
+    @player3 = Player.new("Player 3")
+    @player4 = Player.new("Player 4")
+
+    @player1.add_deck([p1_card1])
+    @player2.add_deck([p2_card1, p2_card2, p2_card3, p2_card4, p2_card5])
+    @player3.add_deck([p3_card1, p3_card2, p3_card3])
+    @player4.add_deck([p4_card1, p4_card2])
+
+    @game.instance_variable_set(:@players, [@player1, @player2, @player3, @player4])
+    @game.send(:play_round, [@player1, @player2, @player3, @player4])
+
+    assert_equal [[], [p2_card5], [], []], @game.instance_variable_get(:@players).map(&:deck), "Player 2 should have his/her last cards left in deck"
+    assert_equal 10, @player1.wone_cards.size, "Player 1's open card gets used in the tie-breaker round as he/she has no additional cards on deck"
+  end
+
   def test_only_2_or_4_players_are_allowed
     # Test with invalid input first (3 players)
     input = StringIO.new("3\n2\nPlayer 1\nPlayer 2\n")  # First invalid (3), then valid (2)
