@@ -13,16 +13,25 @@ class WarCardGame
   end
 
   def setup_players
-    @output.puts "How many players will be playing the game?"
-    n = @input.gets.chomp.to_i
-    card_distributions = @cards.distribute(n).to_a
-
-    1.upto(n) do |i|
-      @output.puts "Enter name of Player #{i}:"
-      name = @input.gets.chomp
-      player = Player.new(name)
-      player.add_deck(card_distributions[i-1] || [])
-      @players << player
+    loop do
+      @output.puts "How many players will be playing the game? (2 or 4 players only)"
+      n = @input.gets.chomp.to_i
+      
+      if [2, 4].include?(n)
+        @output.puts "Starting game with #{n} players."
+        card_distributions = @cards.distribute(n).to_a
+        
+        1.upto(n) do |i|
+          @output.puts "Enter name of Player #{i}:"
+          name = @input.gets.chomp
+          player = Player.new(name)
+          player.add_deck(card_distributions[i-1] || [])
+          @players << player
+        end
+        break
+      else
+        @output.puts "Error: Only 2 or 4 players are allowed. Please try again. \n\n"
+      end
     end
   end
 

@@ -164,4 +164,39 @@ class WarCardGameTest < Minitest::Test
     assert_equal 10, @player1.wone_cards.size, "Player 1 should have all 10 cards"
     assert_equal 0, @player2.wone_cards.size, "Player 2 should have no won cards"
   end
+
+  def test_only_2_or_4_players_are_allowed
+    # Test with invalid input first (3 players)
+    input = StringIO.new("3\n2\nPlayer 1\nPlayer 2\n")  # First invalid (3), then valid (2)
+    output = StringIO.new
+    game = WarCardGame.new(input: input, output: output)
+    
+    # The output should contain the error message for invalid player count
+    output.rewind
+    output_str = output.read
+    assert_includes output_str, "Error: Only 2 or 4 players are allowed.", 
+                   "Should show error message for invalid player count"
+    assert_includes output_str, "Starting game with 2 players.",
+                   "Should then accept 2 players after invalid input"
+    
+    # Test with valid input (2 players)
+    input = StringIO.new("2\nPlayer 1\nPlayer 2\n")
+    output = StringIO.new
+    game = WarCardGame.new(input: input, output: output)
+    
+    output.rewind
+    output_str = output.read
+    assert_includes output_str, "Starting game with 2 players.", 
+                   "Should accept 2 players"
+    
+    # Test with another valid input (4 players)
+    input = StringIO.new("4\nPlayer 1\nPlayer 2\nPlayer 3\nPlayer 4\n")
+    output = StringIO.new
+    game = WarCardGame.new(input: input, output: output)
+    
+    output.rewind
+    output_str = output.read
+    assert_includes output_str, "Starting game with 4 players.", 
+                   "Should accept 4 players"
+  end
 end
