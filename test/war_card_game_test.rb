@@ -74,4 +74,94 @@ class WarCardGameTest < Minitest::Test
     
     assert @game.instance_variable_get(:@tie_was_called), "play_tie should be called on a tie"
   end
+
+  def test_collect_war_cards_for_player
+    # Setup test cards
+    cards = [
+      Cards::Card.new(val: 'A', rank: 14, suit: :hearts),
+      Cards::Card.new(val: 'K', rank: 13, suit: :spades),
+      Cards::Card.new(val: 'Q', rank: 12, suit: :diamonds),
+      Cards::Card.new(val: 'J', rank: 11, suit: :clubs)
+    ]
+    
+    # Test collecting from a player with more than 3 cards
+    player = Player.new("Test Player")
+    player.add_deck(cards.dup)
+    collected = @game.send(:collect_war_cards_for_player, player)
+    assert_equal 3, collected.size
+    assert_equal 1, player.deck.size  # 4 total - 3 collected = 1 remaining
+    assert_equal 0, player.wone_cards.size  # No won cards yet
+    
+    # Test collecting from a player with exactly 3 cards
+    player = Player.new("Test Player 2")
+    player.add_deck(cards[0..2])
+    collected = @game.send(:collect_war_cards_for_player, player)
+    assert_equal 3, collected.size
+    assert_equal 0, player.deck.size
+    
+    # Test collecting from a player with less than 3 cards
+    player = Player.new("Test Player 3")
+    player.add_deck(cards[0..1])
+    collected = @game.send(:collect_war_cards_for_player, player)
+    assert_equal 2, collected.size
+    assert_equal 0, player.deck.size
+    
+    # Test collecting from a player with no cards
+    player = Player.new("Test Player 4")
+    collected = @game.send(:collect_war_cards_for_player, player)
+    assert_empty collected
+  end
+
+  def test_players_with_3_cards_each_with_first_2_being_same
+    # Setup test cards - first two cards are the same rank for both users
+    card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # Player 1 first card
+    card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Player 2 first card (same rank)
+    card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Player 1 second card
+    card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Player 2 second card (same rank)
+    card5 = Cards::Card.new(val: '10', rank: 10, suit: :hearts)   # Player 1 third card
+    card6 = Cards::Card.new(val: '9', rank: 9, suit: :diamonds)   # Player 2 third card
+    
+    @player1.add_deck([card1, card3, card5])
+    @player2.add_deck([card2, card4, card6])
+
+    
+    # Play the round
+    @game.send(:play_round, [@player1, @player2])
+    
+    # After the tie is resolved, player1 should win all cards
+    # because their second card (Q) is higher than player2's second card (J)
+    assert_equal 0, @player1.deck.size, "Player 1 should have no cards left in deck"
+    assert_equal 0, @player2.deck.size, "Player 2 should have no cards left in deck"
+    assert_equal 6, @player1.wone_cards.size, "Player 1 should have all 6 cards"
+    assert_equal 0, @player2.wone_cards.size, "Player 2 should have no won cards"
+  end
+
+  def test_players_with_5_cards_each_with_first_4_being_same    
+    # Setup test cards - first four cards are the same rank for both users
+    p1_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
+    p1_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
+    p1_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie)
+    p1_card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Fourth card (tie)
+    p1_card5 = Cards::Card.new(val: 'J', rank: 11, suit: :hearts)    # Fifth card (wins against J)
+    
+    # Player 2's cards
+    p2_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
+    p2_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
+    p2_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie)
+    p2_card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Fourth card (tie)
+    p2_card5 = Cards::Card.new(val: '5', rank: 5, suit: :hearts)    # Fifth card (loses to Q)
+    
+    @player1.add_deck([p1_card1, p1_card2, p1_card3, p1_card4, p1_card5])
+    @player2.add_deck([p2_card1, p2_card2, p2_card3, p2_card4, p2_card5])
+    
+    # Play the round
+    @game.send(:play_round, [@player1, @player2])
+    
+    # After the multi-level tie is resolved, player1 should win all cards
+    # because their fifth card (Q) is higher than player2's fifth card (J)
+    assert_equal 0, @player1.deck.size, "Player 1 should have no cards left in deck"
+    assert_equal 0, @player2.deck.size, "Player 2 should have no cards left in deck"
+    assert_equal 10, @player1.wone_cards.size, "Player 1 should have all 10 cards"
+    assert_equal 0, @player2.wone_cards.size, "Player 2 should have no won cards"
+  end
 end
