@@ -104,6 +104,7 @@ class WarCardGame
 	def play_tie(tied_players, face_up_cards, winning_rank, cards_played = [])
 		p "Tie between #{tied_players.map(&:name).join(' , ')}! Starting a Tie Breaker..."
 		war_cards = {}
+		previous_face_up_cards = {}
 
 		# Collect face down cards from each player in the war
 		# If a user doesn't have any cards in deck for face-down use their current face-up card for this tie round until eliminated.
@@ -118,10 +119,15 @@ class WarCardGame
 		  # Play one card from each player's war cards
 		  current_face_up_cards = {}
 		  
+			# If a user runs out of card mid tie-breaker; use their last open-card for this round until eliminated
 		  tied_players.each do |player|
-		    next if war_cards[player].empty?
-		    current_face_up_cards[player] = war_cards[player].shift
+		  	if war_cards[player].empty?
+		  	  current_face_up_cards[player] = previous_face_up_cards[player]
+		  	else
+		  	  current_face_up_cards[player] = war_cards[player].shift
+		  	end
 		  end
+			previous_face_up_cards = current_face_up_cards
 
 		  # If no cards were played, break the loop
 		  break if current_face_up_cards.empty?

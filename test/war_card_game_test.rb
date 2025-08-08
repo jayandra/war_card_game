@@ -118,8 +118,8 @@ class WarCardGameTest < Minitest::Test
     card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Player 2 first card (same rank)
     card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Player 1 second card
     card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Player 2 second card (same rank)
-    card5 = Cards::Card.new(val: '10', rank: 10, suit: :hearts)   # Player 1 third card
-    card6 = Cards::Card.new(val: '9', rank: 9, suit: :diamonds)   # Player 2 third card
+    card5 = Cards::Card.new(val: '10', rank: 10, suit: :hearts)   # Player 1 third card (wins the game)
+    card6 = Cards::Card.new(val: '9', rank: 9, suit: :diamonds)   # Player 2 third card (looses to 10)
     
     @player1.add_deck([card1, card3, card5])
     @player2.add_deck([card2, card4, card6])
@@ -128,8 +128,6 @@ class WarCardGameTest < Minitest::Test
     # Play the round
     @game.send(:play_round, [@player1, @player2])
     
-    # After the tie is resolved, player1 should win all cards
-    # because their second card (Q) is higher than player2's second card (J)
     assert_equal 0, @player1.deck.size, "Player 1 should have no cards left in deck"
     assert_equal 0, @player2.deck.size, "Player 2 should have no cards left in deck"
     assert_equal 6, @player1.wone_cards.size, "Player 1 should have all 6 cards"
@@ -140,16 +138,16 @@ class WarCardGameTest < Minitest::Test
     # Setup test cards - first four cards are the same rank for both users
     p1_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
     p1_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
-    p1_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie)
-    p1_card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Fourth card (tie)
-    p1_card5 = Cards::Card.new(val: 'J', rank: 11, suit: :hearts)    # Fifth card (wins against J)
+    p1_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :hearts)     # Third card (tie)
+    p1_card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :diamonds)    # Fourth card (tie)
+    p1_card5 = Cards::Card.new(val: 'J', rank: 11, suit: :hearts)    # Fifth card (wins against 5)
     
     # Player 2's cards
-    p2_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
-    p2_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
+    p2_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :clubs)    # First card (tie)
+    p2_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :spades)  # Second card (tie)
     p2_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie)
     p2_card4 = Cards::Card.new(val: 'Q', rank: 12, suit: :spades)    # Fourth card (tie)
-    p2_card5 = Cards::Card.new(val: '5', rank: 5, suit: :hearts)    # Fifth card (loses to Q)
+    p2_card5 = Cards::Card.new(val: '5', rank: 5, suit: :hearts)    # Fifth card (loses to J)
     
     @player1.add_deck([p1_card1, p1_card2, p1_card3, p1_card4, p1_card5])
     @player2.add_deck([p2_card1, p2_card2, p2_card3, p2_card4, p2_card5])
@@ -157,12 +155,35 @@ class WarCardGameTest < Minitest::Test
     # Play the round
     @game.send(:play_round, [@player1, @player2])
     
-    # After the multi-level tie is resolved, player1 should win all cards
-    # because their fifth card (Q) is higher than player2's fifth card (J)
     assert_equal 0, @player1.deck.size, "Player 1 should have no cards left in deck"
     assert_equal 0, @player2.deck.size, "Player 2 should have no cards left in deck"
     assert_equal 10, @player1.wone_cards.size, "Player 1 should have all 10 cards"
     assert_equal 0, @player2.wone_cards.size, "Player 2 should have no won cards"
+  end
+
+  def test_player_running_out_of_card_during_tie_breaker_uses_faceup_card
+    # Player 1 puts 3 card to table for tie-breaker, player two has only 2 cards to bring to the table
+    # Player 2's last face-up card becomes his/her card for the round.
+    p1_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
+    p1_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
+    p1_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie)
+    p1_card4 = Cards::Card.new(val: 'J', rank: 11, suit: :hearts)    # Fourth card
+    
+    # Player 2's cards
+    p2_card1 = Cards::Card.new(val: 'K', rank: 13, suit: :hearts)    # First card (tie)
+    p2_card2 = Cards::Card.new(val: 'K', rank: 13, suit: :diamonds)  # Second card (tie)
+    p2_card3 = Cards::Card.new(val: 'Q', rank: 12, suit: :clubs)     # Third card (tie), becomes face-up card as there are no more cards
+    
+    @player1.add_deck([p1_card1, p1_card2, p1_card3, p1_card4])
+    @player2.add_deck([p2_card1, p2_card2, p2_card3])
+    
+    # Play the round
+    @game.send(:play_round, [@player1, @player2])
+    
+    assert_equal 0, @player1.deck.size, "Player 1 should have no cards left in deck"
+    assert_equal 0, @player2.deck.size, "Player 2 should have no cards left in deck"
+    assert_equal 0, @player1.wone_cards.size, "Player 1 should have no won cards"
+    assert_equal 7, @player2.wone_cards.size, "Player 2 should have all won cards"
   end
 
   def test_player_with_no_additional_card_uses_face_up_card_for_tiebreaker_round
