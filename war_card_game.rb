@@ -37,7 +37,7 @@ class WarCardGame
 			end
 			
 			# Small delay to make the game playable
-			sleep(0.5)
+			# sleep(0.5)
   	end
 	end
 
@@ -56,8 +56,6 @@ class WarCardGame
 		    face_up_cards[p] = p.play_top_card
 		  end
 		end
-
-		return if face_up_cards.empty?  # No cards were played
 
 		winning_rank = face_up_cards.values.map(&:rank).max
 		winners = face_up_cards.select { |_, c| c.rank == winning_rank }.to_h
@@ -95,39 +93,22 @@ class WarCardGame
 		# Collect face down cards from each player in the war
 		# If a user doesn't have any cards in deck for face-down use their current face-up card for this tie round until eliminated.
 		tied_players.each do |player|
-			cards_played_this_round = []
-			
-			# Play up to 3 cards (or all remaining if less than 3)
-			[3, (player.deck.size + player.wone_cards.size)].min.times do
-				break unless player.has_cards?
-				card = player.play_top_card
-				cards_played_this_round << card if card
-			end
-			
+			cards_played_this_round = collect_war_cards_for_player(player)
 			war_cards[player] = cards_played_this_round
 			cards_played += cards_played_this_round
 
 			# Keep tied players's current face-up card as their card if they don't have any new to set aside
 			if cards_played_this_round.empty? && face_up_cards[player].rank >= winning_rank
-				war_cards[player] = face_up_cards[player]
+				war_cards[player] = [face_up_cards[player]]
 			end
-		end
-
-		active_players = tied_players.select { |p| !war_cards[p].empty? }
-  
-		# If only one player has cards left, they win
-		if active_players.size == 1
-			winner = active_players.first
-			winner.add_cards_won(face_up_cards.values.flatten + cards_played)
-			p "#{winner.name} breaks the tie!!"
-			return
 		end
 
 		# Try up to 3 times to find a winner from war cards
 		3.times do |attempt|
 		  # Play one card from each player's war cards
 		  face_up_war_cards = {}
-		  active_players.each do |player|
+		  tied_players.each do |player|
+				# p "------- we have one card player" if war_cards[player].size == 1
 		    next if war_cards[player].empty?  # Skip if no more war cards
 		    face_up_war_cards[player] = war_cards[player].shift
 		  end
@@ -156,5 +137,18 @@ class WarCardGame
 		    return
 		  end
 		end
+	end
+
+	def collect_war_cards_for_player(player, max_cards = 3)
+		cards_played = []
+		cards_available = [player.deck.size + player.wone_cards.size, max_cards].min
+		
+		cards_available.times do
+			break unless player.has_cards?
+			card = player.play_top_card
+			cards_played << card if card
+		end
+		
+		cards_played
 	end
 end
