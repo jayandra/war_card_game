@@ -2,23 +2,29 @@ require_relative 'cards'
 require_relative 'player'
 
 class WarCardGame
-	def initialize
-		@players = []
-		@cards = Cards.new
-		@cards.shuffle
+  def initialize(input: $stdin, output: $stdout)
+    @input = input
+    @output = output
+    @players = []
+    @cards = Cards.new
+    @cards.shuffle
 
-		puts "How many players will be playing the game?"
-		n = gets.chomp.to_i
-		card_distributions = @cards.distribute(n).to_a
+    setup_players
+  end
 
-		1.upto(n) do |i|
-		  puts "Enter name of Player #{i}:"
-		  p = gets.chomp
-		  player = Player.new(p)
-		  player.add_deck(card_distributions[i-1] || [])
-		  @players << player
-		end
-	end
+  def setup_players
+    @output.puts "How many players will be playing the game?"
+    n = @input.gets.chomp.to_i
+    card_distributions = @cards.distribute(n).to_a
+
+    1.upto(n) do |i|
+      @output.puts "Enter name of Player #{i}:"
+      name = @input.gets.chomp
+      player = Player.new(name)
+      player.add_deck(card_distributions[i-1] || [])
+      @players << player
+    end
+  end
 
 	def play
 		round = 1
