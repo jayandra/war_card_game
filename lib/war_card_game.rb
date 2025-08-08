@@ -67,15 +67,13 @@ class WarCardGame
 
 		# Play one card from each player
 		players.each do |p|
-		  if p.has_cards?
-		    face_up_cards[p] = p.play_top_card
-		  end
+		  face_up_cards[p] = p.play_top_card
 		end
 
 		winning_rank = face_up_cards.values.map(&:rank).max
 		winners = face_up_cards.select { |_, c| c.rank == winning_rank }.to_h
 
-		if winners.size == 1
+		if winners.one?
 		  winner = winners.keys.first
 		  puts "#{winner.name} wins this round with a #{winners[winner].val} of #{winners[winner].suit}!"
 		  winner.add_cards_won(face_up_cards.values)
@@ -87,7 +85,7 @@ class WarCardGame
 
 		# Check for game over
 		remaining_players = @players.select { |p| p.has_cards? }
-		if remaining_players.size == 1
+		if remaining_players.one?
 		  puts "\n #{remaining_players.first.name} wins the game!!!"
 		  return false  # Game over
 		end
@@ -102,53 +100,48 @@ class WarCardGame
 	end
 
 	def play_tie(tied_players, face_up_cards, winning_rank, cards_played = [])
-		p "Tie between #{tied_players.map(&:name).join(' and ')}! Starting a Tie Breaker..."
+		p "Tie between #{tied_players.map(&:name).join(' , ')}! Starting a Tie Breaker..."
 		war_cards = {}
 
 		# Collect face down cards from each player in the war
 		# If a user doesn't have any cards in deck for face-down use their current face-up card for this tie round until eliminated.
 		tied_players.each do |player|
-			cards_played_this_round = collect_war_cards_for_player(player)
-			war_cards[player] = cards_played_this_round
-			cards_played += cards_played_this_round
-
-			# Keep tied players's current face-up card as their card if they don't have any new to set aside
-			if cards_played_this_round.empty? && face_up_cards[player].rank >= winning_rank
-				war_cards[player] = [face_up_cards[player]]
-			end
+		  cards = collect_war_cards_for_player(player)
+		  cards_played += cards
+			war_cards[player] = cards.any? ? cards : [face_up_cards[player]]
 		end
 
 		# Try up to 3 times to find a winner from war cards
 		3.times do |attempt|
 		  # Play one card from each player's war cards
-		  face_up_war_cards = {}
+		  current_face_up_cards = {}
+		  
 		  tied_players.each do |player|
-				# p "------- we have one card player" if war_cards[player].size == 1
-		    next if war_cards[player].empty?  # Skip if no more war cards
-		    face_up_war_cards[player] = war_cards[player].shift
+		    next if war_cards[player].empty?
+		    current_face_up_cards[player] = war_cards[player].shift
 		  end
 
 		  # If no cards were played, break the loop
-		  break if face_up_war_cards.empty?
+		  break if current_face_up_cards.empty?
 
-		  # Find the highest rank among the played cards
-		  max_rank = face_up_war_cards.values.map(&:rank).max
-		  winners = face_up_war_cards.select { |_, card| card.rank == max_rank }.keys
+		  max_rank = current_face_up_cards.values.map(&:rank).max
+		  winners = current_face_up_cards.select { |_, card| card.rank == max_rank }.keys
 
-		  if winners.size == 1
-		    # We have a winner!
+		  if winners.one?
 		    winner = winners.first
-		    p "#{winner.name} wins the tie with a #{face_up_war_cards[winner].val} of #{face_up_war_cards[winner].suit}!"
-
-				all_cards = face_up_cards.values.flatten + cards_played
+		    card = current_face_up_cards[winner]
+		    p "#{winner.name} wins the tie with a #{card.val} of #{card.suit}!"
+		    
+		    # Add all cards from the original round (i.e. face_up_cards) and all cards played during the tiebreaker
+		    all_cards = face_up_cards.values + cards_played
 		    winner.add_cards_won(all_cards)
 		    return
 		  end
 
 		  # If this was the last attempt, prepare for recursive call
 		  if attempt == 2
-		    # Call play_tie until we have a winner
-			  play_tie(winners, face_up_war_cards, max_rank, cards_played)
+		    # Call play_tie with the current face up cards and all cards played so far
+		    play_tie(winners, current_face_up_cards, max_rank, cards_played)
 		    return
 		  end
 		end
