@@ -67,7 +67,9 @@ class WarCardGame
 
 		# Play one card from each player
 		players.each do |p|
-		  face_up_cards[p] = p.play_top_card
+			card = p.play_top_card
+			p "#{p.name} played #{card.val} of #{card.suit}"
+		  face_up_cards[p] = card
 		end
 
 		winning_rank = face_up_cards.values.map(&:rank).max
@@ -154,7 +156,10 @@ class WarCardGame
 		cards_available.times do
 			break unless player.has_cards?
 			card = player.play_top_card
-			cards_played << card if card
+			if card
+				p "#{player.name} added #{card.val} of #{card.suit}"
+				cards_played << card 
+			end
 		end
 		
 		cards_played

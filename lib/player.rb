@@ -17,9 +17,7 @@ class Player
   end
 
   def play_top_card
-    top_card = @deck.shift || @wone_cards.shift
-    p "#{@name} played #{top_card.val} of #{top_card.suit}"
-    top_card
+    @deck.shift || @wone_cards.shift
   end
 
   def has_cards?
